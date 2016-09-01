@@ -1,0 +1,17 @@
+[remote:children]
+production
+testing
+
+[servers:children]
+production
+testing
+local
+
+[production]
+10.10.0.1 nickname=production vm=0 branch=master
+
+[testing]
+172.10.0.1 nickname=testing vm=0 branch=develop
+
+[local]
+localhost nickname=local vm=1 branch=develop

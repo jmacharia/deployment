@@ -1,0 +1,8 @@
+---
+- name: restart info-hub
+  action: "/etc/init.d/{{ project_name }}_{{ item }} stop && /etc/init.d/{{ project_name }}_{{ item }} start"
+  with_items: initfiles
+
+
+
+

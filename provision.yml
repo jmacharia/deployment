@@ -1,0 +1,87 @@
+---
+- hosts: servers
+  vars_files:
+    - vars.yml
+  gather_facts: true
+  sudo: true
+
+  tasks:
+  - name: Create the project directory.
+    file: state=directory path={{ project_root }}
+
+  - name: Create user.
+    user: home={{ project_root }}/home/ name={{ project_name }} state=present
+
+  - name: Update the project directory.
+    file: group={{ project_name }} owner={{ project_name }} mode=755 state=directory path={{ project_root }}
+
+  - name: Create the code directory.
+    file: group={{ project_name }} owner={{ project_name }} mode=755 state=directory path={{ project_root }}/code/
+
+  - name: Install required system packages.
+    yum: state=present name={{ system_packages }}
+    apt: name={{ system_packages }} state=installed
+    with_items: system_packages
+
+  - name: Create the SSH directory.
+    file: state=directory path={{ project_root }}/home/.ssh/
+    when: vm == 0
+
+  - name: Upload SSH known hosts.
+    copy: src=known_hosts dest={{ project_root }}/home/.ssh/known_hosts mode=0600
+    when: vm == 0
+
+  - name: Upload SSH key.
+    copy: src=key dest={{ project_root }}/home/.ssh/id_rsa mode=0600
+    when: vm == 0
+
+  - name: Create the SSL directory.
+    file: state=directory path={{ project_root }}/home/ssl/
+
+  - name: Upload SSL private key.
+    copy: src=files/ssl/{{ project_name }}.pem dest={{ project_root }}/home/ssl/{{ project_name }}.pem
+
+  - name: Upload SSH public key.
+    copy: src=files/ssl/{{ project_name }}.key.encrypted dest={{ project_root }}/home/ssl/{{ project_name }}.key
+
+  - name: Change permissions.
+    shell: chown -R {{ project_name }}:{{ project_name }} {{ project_root }}
+
+  - name: Install init scripts.
+    copy: src=files/init.d/{{ item }} dest=/etc/init.d/{{ project_name }}_{{ item }}
+    with_items: initfiles 
+
+  - name: Install Monit scripts
+    #copy: src=files/monit.d/{{ item }} dest=/etc/monit.d/{{ project_name }}_{{ item }}
+    copy: src=files/monit.d/{{ item }} dest=/etc/monit/monitrc.d/{{ project_name }}_{{ item }}
+    with_items: monitfiles 
+
+  - name: Install logrotate scripts
+    copy: src=files/logrotate.d/{{ item }} dest=/etc/logrotate.d/{{ project_name }}_{{ item }}
+    with_items: logrotatefiles
+
+  - name: Create database.
+    shell: > 
+            "cd {{ project_root }} && createuser -h 127.0.0.1 -p 5432 -U postgres -S -D -R infohubadmin && createdb -h 127.0.0.1 -p 5432 -U postgres -O infohubadmin infohub | sudo -u postgres psql"
+
+  handlers:
+    - include: handlers.yml
+
+- include: deploy.yml
+
+- hosts: servers
+  vars_files:
+    - vars.yml
+  gather_facts: false
+  sudo: true
+
+  tasks:
+
+  - name: Restart services.
+    service: name={{ project_name }}_{{ item }} state=started
+    with_items: initfiles 
+
+  - name: Monitor services.
+    monit: name={{ project_name }}_{{ item }} state=restarted
+    with_items: monitfiles 
+

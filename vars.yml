@@ -1,0 +1,29 @@
+---
+project_name: info-hub
+project_root: /teleteq/info-hub/test
+project_repo: git@bitbucket.org:teleteq/info-hub.git
+system_packages:
+          - twistd
+          - postgres
+          - memcached
+          - python-memcached
+          - zope-interface
+          - rabbitmq-server
+          - monit
+          - carbon
+          - suds
+          - kannel
+          - pika
+initfiles:
+  - flares
+  - menus
+  - services
+monitfiles:
+  - flares
+  - menus
+  - services
+logrotatefiles:
+  - flares
+  - menus
+  - services
+
