@@ -4,7 +4,7 @@
     - vars.yml
   gather_facts: true
   sudo: true
-  sudo_user: joe
+  sudo_user: admin
 
   tasks:
   - name: Pull sources from the repository.
